@@ -1,21 +1,17 @@
-<?php 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
+<?php
 session_start();
-include 'koneksi.php';
+include '../koneksi.php';
 
 // Proteksi login
 if(!isset($_SESSION['login'])){
-  header("Location: login.php");
+  header("Location: ../login.php");
   exit;
 }
 
-// Ambil data
-$query = "SELECT * FROM pesanan ORDER BY id DESC";
-$result = mysqli_query($conn, $query);
+// Ambil data produk
+$data = mysqli_query($conn, "SELECT * FROM produk ORDER BY id DESC");
 
-if(!$result){
+if(!$data){
   die("Query error: " . mysqli_error($conn));
 }
 ?>
@@ -23,7 +19,7 @@ if(!$result){
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Dashboard - Pemesanan</title>
+  <title>Data Produk</title>
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -42,12 +38,12 @@ if(!$result){
 <!-- NAVBAR -->
 <nav class="navbar navbar-dark bg-primary shadow">
   <div class="container">
-    <a class="navbar-brand">🍽️ Aplikasi Pemesanan</a>
+    <a class="navbar-brand">🍔 Menu Produk</a>
+
     <div>
-      <span class="text-white me-3">
-        👤 <?php echo $_SESSION['username']; ?>
-      </span>
-      <a href="logout.php" class="btn btn-light btn-sm">Logout</a>
+      <a href="../dashboard.php" class="btn btn-light btn-sm">
+        <i class="bi bi-arrow-left"></i> Kembali
+      </a>
     </div>
   </div>
 </nav>
@@ -57,18 +53,12 @@ if(!$result){
   <div class="card shadow p-4">
 
     <!-- HEADER -->
-    <div class="d-flex justify-content-between mb-3">
-      <h4>📦 Data Pesanan</h4>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">📋 Data Produk</h4>
 
-      <div>
-        <a href="produk/index.php" class="btn btn-primary">
-          <i class="bi bi-list"></i> Produk
-        </a>
-
-        <a href="pesanan/tambah.php" class="btn btn-success">
-          <i class="bi bi-plus-circle"></i> Tambah Pesanan
-        </a>
-      </div>
+      <a href="tambah_produk.php" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Tambah Produk
+      </a>
     </div>
 
     <!-- TABLE -->
@@ -77,11 +67,10 @@ if(!$result){
         <thead>
           <tr>
             <th>No</th>
-            <th>Nama</th>
-            <th>Produk</th>
-            <th>Jumlah</th>
-            <th>Total</th>
-            <th>Aksi</th>
+            <th>Nama Produk</th>
+            <th>Harga</th>
+            <th>Stok</th>
+            <th width="150">Aksi</th>
           </tr>
         </thead>
 
@@ -89,45 +78,37 @@ if(!$result){
 <?php
 $no = 1;
 
-if(mysqli_num_rows($result) > 0){
-  while($d = mysqli_fetch_assoc($result)){
-
-    $id = isset($d['id']) ? $d['id'] : 0;
+if(mysqli_num_rows($data) > 0){
+  while($d = mysqli_fetch_assoc($data)){
 ?>
 <tr>
   <td><?= $no++; ?></td>
-  <td><?= htmlspecialchars($d['nama_pelanggan'] ?? $d['nama']); ?></td>
-  <td><?= htmlspecialchars($d['produk']); ?></td>
+
+  <td><?= htmlspecialchars($d['nama_produk']); ?></td>
 
   <td>
-    <span class="badge bg-primary">
-      <?= htmlspecialchars($d['jumlah']); ?>
+    <span class="text-success fw-bold">
+      Rp <?= number_format($d['harga'], 0, ',', '.'); ?>
     </span>
   </td>
 
   <td>
-    <strong class="text-success">
-      Rp <?= number_format($d['total'] ?? 0); ?>
-    </strong>
+    <span class="badge bg-secondary">
+      <?= htmlspecialchars($d['stok']); ?>
+    </span>
   </td>
 
   <td>
-    <?php if($id != 0){ ?>
+    <!-- EDIT -->
+    <a href="edit_produk.php?id=<?= $d['id']; ?>" class="btn btn-warning btn-sm">
+      <i class="bi bi-pencil"></i>
+    </a>
 
-      <!-- EDIT -->
-      <a href="pesanan/edit.php?id=<?= $id; ?>" class="btn btn-warning btn-sm">
-        <i class="bi bi-pencil"></i>
-      </a>
-
-      <!-- HAPUS -->
-      <a href="pesanan/hapus.php?id=<?= $id; ?>" 
-         class="btn btn-danger btn-sm btn-hapus">
-        <i class="bi bi-trash"></i>
-      </a>
-
-    <?php } else { ?>
-      <span class="text-danger">ID tidak ada</span>
-    <?php } ?>
+    <!-- HAPUS -->
+    <a href="hapus_produk.php?id=<?= $d['id']; ?>" 
+       class="btn btn-danger btn-sm btn-hapus">
+      <i class="bi bi-trash"></i>
+    </a>
   </td>
 </tr>
 <?php 
@@ -135,7 +116,7 @@ if(mysqli_num_rows($result) > 0){
 } else {
 ?>
 <tr>
-  <td colspan="6">Data masih kosong</td>
+  <td colspan="5">Data produk masih kosong</td>
 </tr>
 <?php } ?>
         </tbody>
@@ -157,8 +138,8 @@ document.querySelectorAll('.btn-hapus').forEach(button => {
     const url = this.getAttribute('href');
 
     Swal.fire({
-      title: 'Yakin hapus data?',
-      text: "Data tidak bisa dikembalikan!",
+      title: 'Hapus produk?',
+      text: "Data akan dihapus permanen!",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
